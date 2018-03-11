@@ -8,21 +8,21 @@
  *
  */
 var util = {
-    $: function (id) {
+    $: function(id) {
         return typeof id == 'string' ? document.getElementById(id) : null;
     },
-    cancel: function (event) {
+    cancel: function(event) {
         event.preventDefault();
         event.stopPropagation();
     },
-    val: function (value) {
+    val: function(value) {
         return value && value > 0 ? value : 1;
     }
 };
 
 /**
  * 文件预处理
- * 
+ *
  * @param {(string | File)} file 上传的文件对象或者url路径
  */
 function handleFile(file) {
@@ -43,6 +43,7 @@ function handleFile(file) {
         var imgUrl = source[1];
 
         util.$('preview').innerHTML = '<img src="' + imgUrl + '" />';
+        bindClick()
 
         handlePiece(imgUrl);
 
@@ -67,9 +68,10 @@ function handleFile(file) {
      * @param {Object} event
      */
     var reader = new FileReader();
-    reader.onload = function (event) {
+    reader.onload = function(event) {
         source = event.target.result;
         util.$('preview').innerHTML = '<img src="' + source + '" />';
+        bindClick()
         handlePiece(source);
     };
     reader.readAsDataURL(file);
@@ -77,34 +79,34 @@ function handleFile(file) {
 
 /**
  * 初始化事件绑定
- * 
+ *
  */
 function initFile() {
     var previewDiv = util.$('preview');
     var fileInput = util.$('imgFile');
-    
-    var row =  util.$('row');
-    var column =  util.$('column');
 
-    previewDiv.ondragenter = function (event) {
+    var row = util.$('row');
+    var column = util.$('column');
+
+    previewDiv.ondragenter = function(event) {
         util.cancel(event);
         this.style.borderColor = '#f00';
     };
 
-    previewDiv.ondragover = function (event) {
+    previewDiv.ondragover = function(event) {
         util.cancel(event);
     };
 
-    previewDiv.ondragleave = function () {
+    previewDiv.ondragleave = function() {
         this.style.borderColor = '#00f';
     };
 
-    previewDiv.ondrop = function (event) {
+    previewDiv.ondrop = function(event) {
         util.cancel(event);
-        
+
         var file = event.dataTransfer.files[0];
         var html = event.dataTransfer.getData('text/html');
-        
+
         this.style.borderColor = '#00f';
 
         handleFile(file || html);
@@ -112,16 +114,16 @@ function initFile() {
 
     /**
      * 通过input上传的文件发生改变时触发
-     * 
+     *
      * @event
      */
-    fileInput.onchange = function () {
+    fileInput.onchange = function() {
         handleFile(this.files[0]);
     };
-    
+
     /**
      * 分割宫格行列数发生变化时触发
-     * 
+     *
      * @event
      */
     row.onchange = updateRowColumn;
@@ -137,34 +139,35 @@ function initFile() {
 
 /**
  * 图片碎片预处理
- * 
+ *
  * @param {(string | Image)} source 可以是图片路径或者图片对象
  */
 function handlePiece(source) {
     if (!source) {
         return;
     }
-    var rowVal =  util.$('row').value;
-    var columnVal =  util.$('column').value;
-    
+    var rowVal = util.$('row').value;
+    var columnVal = util.$('column').value;
+
     if (typeof source === 'string') {
         var img = new Image();
-        
-        img.onload = function () {
+
+        img.onload = function() {
             util.$('result').innerHTML = createPiece(img, rowVal, columnVal);
+            bindClick()
         };
 
         img.src = source;
-    }
-    else {
+    } else {
         util.$('result').innerHTML = createPiece(source, rowVal, columnVal);
+        bindClick()
     }
 }
 
 /**
  * 生成图片碎片
- * 
- * @param {Image} img 
+ *
+ * @param {Image} img
  * @param {number=} row 分割宫格的行数
  * @param {number=} column 分割宫格的列数
  */
@@ -186,16 +189,16 @@ function createPiece(img, row, column) {
 
     for (var i = 0; i < row; i++) {
         html += '<tr>';
-        
+
         for (var j = 0; j < column; j++) {
             ctx.drawImage(
-                img, 
-                j * wpiece, i * hpiece, wpiece, hpiece, 
+                img,
+                j * wpiece, i * hpiece, wpiece, hpiece,
                 0, 0, wpiece, hpiece
             );
 
             src = canvas.toDataURL();
-            html += '<td><img src="' + src + '" /></td>';
+            html += '<td srow="' + i + '" scol="' + j + '"><img src="' + src + '" /></td>';
         }
         html += '</tr>';
     }
@@ -204,3 +207,20 @@ function createPiece(img, row, column) {
 }
 
 window.onload = initFile;
+
+function bindClick() {
+    $("td").on("click", function() {
+        var rowVal = util.$('row').value;
+        var columnVal = util.$('column').value;
+        var row = $(this).attr('srow');
+        var col = $(this).attr('scol');
+        $("#mark").text(`(${rowVal}, ${columnVal})[${row}][${col}]`);
+    });
+    $("td").on("mouseover", function() {
+        var rowVal = util.$('row').value;
+        var columnVal = util.$('column').value;
+        var row = $(this).attr('srow');
+        var col = $(this).attr('scol');
+        $("#hover").text(`(${rowVal}, ${columnVal})[${row}][${col}]`);
+    });
+}
